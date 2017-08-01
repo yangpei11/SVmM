@@ -1,5 +1,6 @@
 # *-* coding:utf-8 *-*
 from numpy import *
+import matplotlib.pyplot as plt
 
 #SMO过程见
 #http://blog.csdn.net/luoshixian099/article/details/51227754
@@ -79,10 +80,29 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
 		print "iteration number %d" %iters
 	return b, alphas
 
+def plotSupportVector(supportVector, dataArr):
+	dataMat = array(dataArr)
+	xcord1 = []; ycord1 = []
+	xcord2 = []; ycord2 = []
+	for i in range(100):
+		if supportVector[i] == 1:
+			xcord1.append(dataMat[i, 0]); ycord1.append(dataMat[i, 1])
+		else:
+			xcord2.append(dataMat[i, 0]); ycord2.append(dataMat[i, 1])
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	ax.scatter(xcord1, ycord1, s = 30, c = 'red', marker = 's')
+	ax.scatter(xcord2, ycord2, s = 30, c = 'green')
+	plt.show()
+
 dataArr, labelArr = loadDataSet('testSet.txt')
 b, alphas = smoSimple(dataArr, labelArr, 0.6, 0.001, 40)
 
+supportVector = zeros(100)
 #打印出支持向量
 for i in range(100):
 	if alphas[i] > 0.0:
+		supportVector[i] = 1
 		print dataArr[i], labelArr[i]
+
+plotSupportVector(supportVector, dataArr)
