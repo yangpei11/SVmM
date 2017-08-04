@@ -118,7 +118,8 @@ def smoP(dataMatIn, classLabels, C, toler, maxIter, kTup=('lin', 0) ):
 			entireSet = True
 	return oS.b, oS.alphas
 
-def plotSupportVector(supportVector, dataArr):
+def plotSupportVector(supportVector, dataArr, w, b):
+	w = array(w).ravel()
 	dataMat = array(dataArr)
 	xcord1 = []; ycord1 = []
 	xcord2 = []; ycord2 = []
@@ -129,9 +130,21 @@ def plotSupportVector(supportVector, dataArr):
 			xcord2.append(dataMat[i, 0]); ycord2.append(dataMat[i, 1])
 	fig = plt.figure()
 	ax = fig.add_subplot(111)
+	x = arange(2,8, 0.1)
+	y = ((-b-w[0]*x)/w[1])
+
 	ax.scatter(xcord1, ycord1, s = 30, c = 'red', marker = 's')
 	ax.scatter(xcord2, ycord2, s = 30, c = 'green')
+	plt.plot(x, y)
 	plt.show()
+
+def calcWs(alphas, dataArr, classLabels):
+	X = mat(dataArr); labelMat = mat(classLabels).transpose()
+	m, n = shape(X)
+	w = zeros( (n, 1) )
+	for i in range(m):
+		w += multiply(alphas[i]*labelMat[i], X[i, :].T)
+	return w
 
 class optStruct:
     def __init__(self,dataMatIn, classLabels, C, toler):  # Initialize the structure with the parameters 
@@ -146,8 +159,7 @@ class optStruct:
 
 dataArr, labelArr = loadDataSet('testSet.txt')
 b, alphas = smoP(dataArr, labelArr, 0.6, 0.001, 40)
-
-
+w = calcWs(alphas, dataArr,labelArr)
 
 supportVector = zeros(100)
 #打印出支持向量
@@ -156,4 +168,4 @@ for i in range(100):
 		supportVector[i] = 1
 		print dataArr[i], labelArr[i]
 
-plotSupportVector(supportVector, dataArr)
+plotSupportVector(supportVector, dataArr, w, int(b))
