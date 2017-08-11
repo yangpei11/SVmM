@@ -20,7 +20,7 @@ def clipAlpha(aj,H,L):
 
 def calcEk(oS, k):
 	fXk = float(multiply(oS.alphas, oS.labelMat).T*\
-		(oS.X * oS.X[k, :].T)) + oS.b
+		oS.K[:, k]) + oS.b
 	Ek = fXk - float( oS.labelMat[k] )
 	return Ek
 
@@ -67,8 +67,9 @@ def innerL(i ,oS):
 		if L == H:
 			print  'L == H'
 			return 0
-		eta = 2.0*oS.X[i, :]*oS.X[j, :].T-oS.X[i,:]*oS.X[i, :].T- \
-		oS.X[j, :]*oS.X[j, :].T
+		#eta = 2.0*oS.X[i, :]*oS.X[j, :].T-oS.X[i,:]*oS.X[i, :].T- \
+		#oS.X[j, :]*oS.X[j, :].T
+		eta = 2.0*oS.K[i, j] - oS.K[i, i] - oS.K[j, j]
 		if eta >= 0:
 			print 'eta>=0'
 			return 0
@@ -81,11 +82,11 @@ def innerL(i ,oS):
 		oS.alphas[i] += oS.labelMat[j]*oS.labelMat[i]*(alphasJold-oS.alphas[j])
 		updateEk(oS, i)
 		b1 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphasIold)*\
-		oS.X[i, :]*oS.X[i, :].T-oS.labelMat[j]*\
-		(oS.alphas[j]-alphasJold)*oS.X[i, :]*oS.X[j, :].T
+		oS.K[i, i]-oS.labelMat[j]*\
+		(oS.alphas[j]-alphasJold)*oS.K[i, j]
 		b2 = oS.b - Ej - oS.labelMat[i]*(oS.alphas[i]-alphasIold)*\
-		oS.X[i, :]*oS.X[j, :].T-oS.labelMat[j]*\
-		(oS.alphas[j]-alphasJold)*oS.X[j, :]*oS.X[j, :].T
+		oS.K[i, j]-oS.labelMat[j]*\
+		(oS.alphas[j]-alphasJold)*oS.K[j, j]
 
 		if (0 < oS.alphas[i] ) and (oS.alphas[i] < oS.C):
 			oS.b = b1
@@ -135,7 +136,7 @@ def plotSupportVector(supportVector, dataArr, w, b):
 
 	ax.scatter(xcord1, ycord1, s = 30, c = 'red', marker = 's')
 	ax.scatter(xcord2, ycord2, s = 30, c = 'green')
-	plt.plot(x, y)
+	#plt.plot(x, y)
 	plt.show()
 
 def calcWs(alphas, dataArr, classLabels):
@@ -145,6 +146,40 @@ def calcWs(alphas, dataArr, classLabels):
 	for i in range(m):
 		w += multiply(alphas[i]*labelMat[i], X[i, :].T)
 	return w
+
+def kernelTrans(X, A, kTup):
+	m, n = shape(X)
+	K = mat( zeros((m, 1)) )
+	if kTup[0] == 'lin':
+		K = X*A.T
+	elif kTup[0] == 'rbf':
+		for j in range(m):
+			deltaRow = X[j, :] - A
+			K[j] = deltaRow * deltaRow.T
+		K = exp( K/(-1*kTup[1]**2) )
+	else:
+		pass
+	return K
+
+def testRbf(k1=1.3):
+	dataArr, labelArr = loadDataSet('testSetRBF.txt')
+	b, alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000)
+	dataMat = mat(dataArr); labelMat = mat(labelArr).transpose()
+	svInd = nonzero(alphas.A > 0)[0]
+	sVs = dataMat[svInd]
+	labelSV = labelMat[svInd]
+	print "there are %d Support Vectors" %shape(sVs)[0]
+	m, n = shape(dataMat)
+	errorCount = 0
+	for i in range(m):
+		kernelEval = kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+		predict = kernelEval.T *multiply(labelSV, alphas[svInd]) + b
+		if sign(predict) != sign(labelArr[i]):
+			errorCount += 1
+	print "the training error rate is: %f" %(float(errorCount)/m)
+
+
+
 
 class optStruct:
     def __init__(self,dataMatIn, classLabels, C, toler):  # Initialize the structure with the parameters 
@@ -156,10 +191,15 @@ class optStruct:
         self.alphas = mat(zeros((self.m,1)))
         self.b = 0
         self.eCache = mat(zeros((self.m,2))) #first column is valid flag
+        self.K = mat(zeros((self.m,self.m)))
+        for i in range(self.m)
+            self.K[:,i] = kernelTrans(self.X, self.X[i,:], ('rbf', 1.3))
 
+'''
 dataArr, labelArr = loadDataSet('testSet.txt')
 b, alphas = smoP(dataArr, labelArr, 0.6, 0.001, 40)
 w = calcWs(alphas, dataArr,labelArr)
+
 
 supportVector = zeros(100)
 #打印出支持向量
@@ -169,3 +209,6 @@ for i in range(100):
 		print dataArr[i], labelArr[i]
 
 plotSupportVector(supportVector, dataArr, w, int(b))
+'''
+
+testRbf()
